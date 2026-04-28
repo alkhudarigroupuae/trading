@@ -14,7 +14,26 @@
 
 <!-- Account Summary Cards -->
 <div class="row mb-4" id="accountSummary">
-    <div class="col-md-3 mb-3">
+    <!-- Live Gold Price Card -->
+    <div class="col mb-3">
+        <div class="card border-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-warning mb-1">Live Gold (XAUUSD)</h6>
+                        <h4 class="mb-0" id="liveGoldPrice">
+                            <i class="fas fa-spinner fa-spin text-warning"></i>
+                        </h4>
+                    </div>
+                    <div style="color: #FFD700;">
+                        <i class="fas fa-coins fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col mb-3">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -32,7 +51,7 @@
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
+    <div class="col mb-3">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -50,7 +69,7 @@
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
+    <div class="col mb-3">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -68,7 +87,7 @@
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
+    <div class="col mb-3">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -241,6 +260,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (data.positions) {
                 updatePositionsTable(data.positions);
+            }
+        });
+        
+        let lastGoldPrice = 0;
+        socket.on('market_prices_update', function(prices) {
+            if (prices && prices['GC=F']) {
+                const currentPrice = prices['GC=F'];
+                const priceElement = document.getElementById('liveGoldPrice');
+                
+                // Determine color based on price movement
+                let colorClass = 'text-light';
+                let arrow = '';
+                if (lastGoldPrice > 0) {
+                    if (currentPrice > lastGoldPrice) {
+                        colorClass = 'text-success';
+                        arrow = '<i class="fas fa-arrow-up fs-6 ms-1"></i>';
+                    } else if (currentPrice < lastGoldPrice) {
+                        colorClass = 'text-danger';
+                        arrow = '<i class="fas fa-arrow-down fs-6 ms-1"></i>';
+                    }
+                }
+                
+                priceElement.innerHTML = `<span class="${colorClass}">$${currentPrice.toFixed(2)} ${arrow}</span>`;
+                lastGoldPrice = currentPrice;
             }
         });
     }

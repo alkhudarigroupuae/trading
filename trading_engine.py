@@ -266,6 +266,10 @@ class TradingEngine:
                     }
                     socketio.emit('dashboard_update', dashboard_data)
                     
+                    # Emit live market prices specifically for the UI
+                    if hasattr(trader, 'current_prices'):
+                        socketio.emit('market_prices_update', trader.current_prices)
+                    
                 except Exception as e:
                     logging.error(f"Error processing account {account_config['login']}: {e}", exc_info=True)
                     
