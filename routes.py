@@ -1,5 +1,29 @@
-from flask import render_template, request, jsonify, redirect, url_for, flash
+from flask import render_template, request, jsonify, redirect, url_for, flash, session
 from app import app, db, socketio
+from functools import wraps
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == 'Belal100%':
+            session['logged_in'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid password', 'error')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 from models import Account, Trade, BacktestResult, SystemLog
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
@@ -9,21 +33,25 @@ from backtesting import BacktestEngine
 from notifications import NotificationManager
 
 @app.route('/')
+@login_required
 def dashboard():
     """Main dashboard view"""
     return render_template('dashboard.html')
 
 @app.route('/analytics')
+@login_required
 def analytics():
     """Analytics and reporting view"""
     return render_template('analytics.html')
 
 @app.route('/backtest')
+@login_required
 def backtest():
     """Backtesting interface"""
     return render_template('backtest.html')
 
 @app.route('/settings')
+@login_required
 def settings():
     """Settings and configuration view"""
     return render_template('settings.html')

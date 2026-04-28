@@ -22,17 +22,17 @@ if __name__ == "__main__":
     trading_thread.start()
     
     # Start Flask-SocketIO development server
-    print("Starting Forex Trading Bot Dashboard on http://0.0.0.0:5000")
-    print("Dashboard: http://localhost:5000")
-    print("Analytics: http://localhost:5000/analytics")
-    print("Backtest: http://localhost:5000/backtest")
-    print("Settings: http://localhost:5000/settings")
+    print("Starting Forex Trading Bot Dashboard on http://0.0.0.0:5500")
+    print("Dashboard: http://localhost:5500")
+    print("Analytics: http://localhost:5500/analytics")
+    print("Backtest: http://localhost:5500/backtest")
+    print("Settings: http://localhost:5500/settings")
     
     # Use the development server which handles WebSockets better
     socketio.run(
         app, 
         host='0.0.0.0', 
-        port=5000, 
+        port=5500, 
         debug=False, 
         allow_unsafe_werkzeug=True,
         use_reloader=False,

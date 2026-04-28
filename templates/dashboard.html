@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Forex Trading Bot{% endblock %}
+{% block title %}Dashboard - Alkhudari Trading{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
@@ -24,7 +24,7 @@
                             <i class="fas fa-spinner fa-spin"></i>
                         </h4>
                     </div>
-                    <div class="text-info">
+                    <div style="color: var(--bs-primary);">
                         <i class="fas fa-wallet fa-2x"></i>
                     </div>
                 </div>
@@ -42,8 +42,8 @@
                             <i class="fas fa-spinner fa-spin"></i>
                         </h4>
                     </div>
-                    <div class="text-warning">
-                        <i class="fas fa-chart-line fa-2x"></i>
+                    <div style="color: var(--bs-primary);">
+                        <i class="fas fa-crown fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -60,8 +60,8 @@
                             <i class="fas fa-spinner fa-spin"></i>
                         </h4>
                     </div>
-                    <div class="text-success">
-                        <i class="fas fa-coins fa-2x"></i>
+                    <div style="color: var(--bs-primary);">
+                        <i class="fas fa-shield-alt fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -78,8 +78,8 @@
                             <i class="fas fa-spinner fa-spin"></i>
                         </h4>
                     </div>
-                    <div class="text-primary">
-                        <i class="fas fa-chart-bar fa-2x"></i>
+                    <div style="color: var(--bs-primary);">
+                        <i class="fas fa-briefcase fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                 <h5 class="mb-0">
                     <i class="fas fa-user-circle me-2"></i>Account Information
                 </h5>
-                <span class="badge bg-secondary" id="lastUpdate">Never</span>
+                <span class="badge bg-primary" id="lastUpdate" style="color: #000000 !important;">Never</span>
             </div>
             <div class="card-body">
                 <div id="accountInfo">
@@ -228,6 +228,22 @@
 <script>
 // Dashboard-specific JavaScript
 document.addEventListener('DOMContentLoaded', function() {
+    // Listen for WebSocket dashboard updates to handle Real Market Data
+    if (typeof io !== 'undefined') {
+        const socket = io();
+        socket.on('dashboard_update', function(data) {
+            if (data.account_info) {
+                document.getElementById('totalBalance').innerHTML = `$${data.account_info.balance.toFixed(2)}`;
+                document.getElementById('totalEquity').innerHTML = `$${data.account_info.equity.toFixed(2)}`;
+                document.getElementById('freeMargin').innerHTML = `$${data.account_info.margin_free.toFixed(2)}`;
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                updateAccountInfo(data.account_info);
+            }
+            if (data.positions) {
+                updatePositionsTable(data.positions);
+            }
+        });
+    }
     // Initialize dashboard
     initializeDashboard();
     
