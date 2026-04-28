@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: alkhudari-tradeengine
+    env: python
+    region: frankfurt # Good latency for European/UK Forex brokers
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn -k eventlet -w 1 -b 0.0.0.0:$PORT app:app"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SESSION_SECRET
+        generateValue: true # Render will generate a strong secret automatically
+      # Note: DO NOT put your API keys here in code. Add them manually in the Render Dashboard!
+      - key: DEEPSEEK_API_KEY
+        sync: false
+    autoDeploy: true

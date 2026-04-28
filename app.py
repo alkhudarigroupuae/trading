@@ -45,3 +45,21 @@ with app.app_context():
 # Import routes
 import routes
 import websocket_handler
+
+# --- RENDER PRODUCTION SETUP ---
+# Start the Trading Engine background thread automatically if we are running in a production server (Gunicorn)
+import os
+import threading
+from trading_engine import TradingEngine
+
+def start_background_engine():
+    import time
+    time.sleep(3) # Wait for Flask to initialize
+    engine = TradingEngine()
+    engine.start()
+
+# Check if running under Gunicorn or explicitly asked to run background
+if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER'):
+    logging.info("Production environment detected. Starting background Trading Engine...")
+    bg_thread = threading.Thread(target=start_background_engine, daemon=True)
+    bg_thread.start()
