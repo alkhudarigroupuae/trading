@@ -242,7 +242,21 @@ def api_config():
 def api_config_update():
     """Update configuration"""
     try:
-        config = request.json
+        updates = request.json
+        
+        # Load existing config to merge (so we don't overwrite other tabs)
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+            
+        def deep_update(d, u):
+            for k, v in u.items():
+                if isinstance(v, dict) and k in d and isinstance(d[k], dict):
+                    deep_update(d[k], v)
+                else:
+                    d[k] = v
+                    
+        deep_update(config, updates)
+        
         with open('config.json', 'w') as f:
             json.dump(config, f, indent=2)
         

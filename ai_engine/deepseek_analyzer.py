@@ -9,12 +9,26 @@ import requests
 import os
 
 class DeepSeekAnalyzer:
+    def _get_api_key(self):
+        # 1. Try to read from user settings (config.json)
+        try:
+            with open('config.json', 'r') as f:
+                config = json.load(f)
+                key = config.get('ai_settings', {}).get('deepseek_api_key')
+                if key and key.strip() != '':
+                    return key.strip()
+        except Exception as e:
+            logging.debug(f"Could not read API key from config: {e}")
+            
+        # 2. Fallback to Environment Variable (for Vercel Production)
+        return os.environ.get("DEEPSEEK_API_KEY", "")
+
     def __init__(self, api_key=None):
         """
         Initialize the AI Analyzer.
-        In production, the API key should come from an environment variable (.env).
+        In production, the API key comes from config.json (User Settings) or Vercel Environment Variables.
         """
-        self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "your_api_key_here")
+        self.api_key = api_key or self._get_api_key()
         self.base_url = "https://api.deepseek.com/v1/chat/completions" # Replace with actual DeepSeek endpoint
         
     def analyze_market(self, symbol, current_price, technical_data=None):
@@ -29,7 +43,9 @@ class DeepSeekAnalyzer:
         Returns:
             dict: The AI's decision (BUY/SELL/HOLD, Confidence, Stop Loss, Take Profit)
         """
-        logging.info(f"AI Engine analyzing {symbol} at price {current_price}")
+        # Refresh API key on every analysis to catch UI updates immediately
+        self.api_key = self._get_api_key()
+        logging.info(f"AI Engine analyzing {symbol} at price {current_price} with key configured: {bool(self.api_key)}")
         
         # Build the prompt for the AI
         prompt = f"""

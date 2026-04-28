@@ -39,6 +39,11 @@
             <i class="fas fa-server me-2"></i>System
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="ai-tab" data-bs-toggle="tab" data-bs-target="#ai" type="button" role="tab">
+            <i class="fas fa-brain me-2"></i>AI Engine
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="configTabsContent">
@@ -413,6 +418,49 @@
         </div>
     </div>
     
+    <!-- AI Engine Tab -->
+    <div class="tab-pane fade" id="ai" role="tabpanel">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-robot me-2"></i>AI Model Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="aiSettingsForm">
+                            <div class="mb-3">
+                                <label for="deepseekApiKey" class="form-label">DeepSeek API Key</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary"><i class="fas fa-key text-warning"></i></span>
+                                    <input type="password" class="form-control" id="deepseekApiKey" placeholder="sk-...">
+                                </div>
+                                <div class="form-text text-muted">Your API key is securely saved and used to generate real-time trading signals.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save AI Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Production Note
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small mb-0">For 100% Live Production (Vercel), settings saved here are active for the current runtime. For permanent persistence across all serverless instances, it is recommended to set <code>DEEPSEEK_API_KEY</code> in the Vercel Environment Variables dashboard.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- System Tab -->
     <div class="tab-pane fade" id="system" role="tabpanel">
         <div class="row">
@@ -606,6 +654,11 @@ function populateConfigurationForms(config) {
     const global = config.global_settings || {};
     const risk = config.risk_management || {};
     const notifications = config.notification_settings || {};
+    const ai = config.ai_settings || {};
+    
+    if(document.getElementById('deepseekApiKey')) {
+        document.getElementById('deepseekApiKey').value = ai.deepseek_api_key || '';
+    }
     
     // Global settings
     document.getElementById('enableTimeFilter').checked = global.enable_time_filter || false;
@@ -733,6 +786,15 @@ function setupFormHandlers() {
         saveSmsSettings();
     });
     
+    // AI settings form
+    const aiForm = document.getElementById('aiSettingsForm');
+    if(aiForm) {
+        aiForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveAiSettings();
+        });
+    }
+    
     // Add account form
     document.getElementById('saveAccountBtn').addEventListener('click', function() {
         saveNewAccount();
@@ -789,6 +851,13 @@ function saveEmailSettings() {
     };
     
     updateConfiguration({ notification_settings: emailSettings });
+}
+
+function saveAiSettings() {
+    const aiSettings = {
+        deepseek_api_key: document.getElementById('deepseekApiKey').value
+    };
+    updateConfiguration({ ai_settings: aiSettings });
 }
 
 function saveSmsSettings() {
