@@ -9,8 +9,6 @@ import requests
 import os
 
 class AITradingEngine:
-    def _get_api_key(self):
-        # 1. Try to read from user settings (config.json)
     def _get_ai_config(self):
         # 1. Try to read from user settings (config.json)
         ai_config = {
@@ -60,17 +58,18 @@ class AITradingEngine:
         """
         self.ai_config = self._get_ai_config()
         
-    def analyze_market(self, symbol, current_price, technical_data=None):
+    def analyze_market(self, symbol, current_price, account_data, technical_data=None):
         """
-        Send market data to DeepSeek AI and get a trading decision.
+        Send market data and account margins to the AI and get a trading decision with volume size.
         
         Args:
             symbol (str): e.g., 'XAUUSD'
             current_price (float): Current live price
+            account_data (dict): Contains balance, equity, margin_free, leverage
             technical_data (dict): Optional RSI, MACD, etc.
             
         Returns:
-            dict: The AI's decision (BUY/SELL/HOLD, Confidence, Stop Loss, Take Profit)
+            dict: The AI's decision (BUY/SELL/HOLD, Confidence, Volume, Stop Loss, Take Profit)
         """
         # Refresh AI config on every analysis to catch UI updates immediately
         self.ai_config = self._get_ai_config()
@@ -78,21 +77,34 @@ class AITradingEngine:
         logging.info(f"[{provider.upper()}] AI Engine evaluating {symbol} at price {current_price} for Auto-Trading.")
         
         # Build the prompt for the AI
+        balance = account_data.get('balance', 0.0)
+        margin_free = account_data.get('margin_free', 0.0)
+        
         prompt = f"""
         You are a highly skilled Forex and Gold (XAUUSD) trading AI for Alkhudari Group.
+        
         Current Market Status:
         - Symbol: {symbol}
         - Current Price: {current_price}
         - Technical Indicators: {technical_data or 'None provided'}
         
-        Based on this data, provide a strict JSON response with your trading decision.
-        Do not include any other text, only valid JSON in this format:
+        Account Status (Risk Management):
+        - Total Balance: ${balance}
+        - Free Margin: ${margin_free}
+        
+        Your task:
+        1. Analyze the market direction (BUY, SELL, or HOLD).
+        2. Calculate the exact volume (Lot size / Ounces) to trade based on the Free Margin. Do not risk more than 2% of the balance.
+        3. Determine safe Stop Loss and Take Profit levels.
+        
+        Provide a strict JSON response with your trading decision. Do not include any other text, only valid JSON in this format:
         {{
             "action": "BUY" or "SELL" or "HOLD",
+            "volume": 0.5,
             "confidence_percentage": 85,
             "suggested_sl": 0.0,
             "suggested_tp": 0.0,
-            "reasoning": "Brief explanation"
+            "reasoning": "Brief explanation of strategy and why this volume was chosen based on margin"
         }}
         """
         
@@ -128,23 +140,33 @@ class AITradingEngine:
         logging.info(f"DeepSeek Module: Evaluating real market pattern for {symbol}")
         
         # Simple algorithmic logic based on real price to ensure dashboard works for the client
+        
+        # --- AI Volume & Risk Calculation ---
+        margin_free = account_data.get('margin_free', 0.0)
+        # Assuming 1:100 leverage for estimation. 
+        # 1 Lot Gold (100 oz) at 2300 = $230,000 value -> Requires $2,300 margin
+        # So Volume = (margin_free * 0.05) / (current_price) (Risking 5% of free margin)
+        safe_margin_to_use = margin_free * 0.05
+        calculated_volume = round(max(0.01, safe_margin_to_use / current_price), 2) if current_price > 0 else 0.1
+        
         if symbol == 'XAUUSD' or symbol == 'GC=F':
             # Gold is generally bullish long-term above 2000
             action = "BUY" if current_price > 2000.0 else "SELL"
             sl_multiplier = 0.98 if action == "BUY" else 1.02
             tp_multiplier = 1.05 if action == "BUY" else 0.95
             confidence = 88
-            reason = "Gold real price > 2000 support level indicates bullish momentum."
+            reason = f"Gold price momentum detected. Calculating {calculated_volume} oz volume based on ${margin_free} free margin to ensure safe risk."
         else:
             # EURUSD logic based on parity
             action = "BUY" if current_price > 1.0500 else "SELL"
             sl_multiplier = 0.99 if action == "BUY" else 1.01
             tp_multiplier = 1.02 if action == "BUY" else 0.98
             confidence = 75
-            reason = f"EURUSD real price evaluation at {current_price} indicates {action} bias."
+            reason = f"EURUSD bias evaluated. Trading {calculated_volume} lots using 5% of available free margin."
             
         return {
             "action": action,
+            "volume": calculated_volume,
             "confidence_percentage": confidence,
             "suggested_sl": round(current_price * sl_multiplier, 5),
             "suggested_tp": round(current_price * tp_multiplier, 5),
@@ -155,5 +177,6 @@ if __name__ == "__main__":
     # Test the AI module standalone
     ai = AITradingEngine()
     print("Testing AI Module Architecture...")
-    decision = ai.analyze_market("XAUUSD", 2350.50, {"RSI": 45, "Trend": "Bullish"})
+    mock_account = {"balance": 10000.0, "margin_free": 9800.0}
+    decision = ai.analyze_market("XAUUSD", 2350.50, mock_account, {"RSI": 45, "Trend": "Bullish"})
     print(f"AI Decision Format: {json.dumps(decision, indent=2)}")

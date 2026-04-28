@@ -44,13 +44,18 @@ except ImportError:
                     # --- AI DEFAULT INTEGRATION ---
                     # Instead of random guessing, the AI module is now the default brain
                     symbol_clean = 'XAUUSD' if sym == 'GC=F' else 'EURUSD'
-                    ai_decision = self.ai_engine.analyze_market(symbol_clean, price)
+                    # Pass the real account status (Margin, Balance) to the AI so it can size the trade
+                    account_status = {
+                        'balance': self.balance,
+                        'margin_free': self.margin_free if hasattr(self, 'margin_free') else self.balance
+                    }
+                    ai_decision = self.ai_engine.analyze_market(symbol_clean, price, account_status)
                     
                     if ai_decision['action'] in ['BUY', 'SELL']:
                         is_buy = True if ai_decision['action'] == 'BUY' else False
                         
-                        # 1 lot Gold = 100 oz. 1 lot EURUSD = 100k
-                        vol = 1.0 if sym == 'GC=F' else 0.1 
+                        # The AI now dynamically calculates the safe volume based on free margin
+                        vol = ai_decision.get('volume', 0.1)
                         
                         self.positions.append({
                             'ticket': int(datetime.utcnow().timestamp() % 1000000),
