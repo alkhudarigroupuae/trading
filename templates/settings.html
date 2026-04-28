@@ -431,15 +431,46 @@
                     <div class="card-body">
                         <form id="aiSettingsForm">
                             <div class="mb-3">
+                                <label for="aiProvider" class="form-label">AI Provider</label>
+                                <select class="form-select bg-dark text-light border-secondary" id="aiProvider">
+                                    <option value="deepseek">DeepSeek (Recommended)</option>
+                                    <option value="chatgpt">ChatGPT (OpenAI)</option>
+                                    <option value="ollama">Ollama (Local AI - Free)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- DeepSeek Key -->
+                            <div class="mb-3 api-key-group" id="group-deepseek">
                                 <label for="deepseekApiKey" class="form-label">DeepSeek API Key</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-dark border-secondary"><i class="fas fa-key text-warning"></i></span>
-                                    <input type="password" class="form-control" id="deepseekApiKey" placeholder="sk-...">
+                                    <input type="password" class="form-control bg-dark text-light border-secondary" id="deepseekApiKey" placeholder="sk-...">
                                 </div>
-                                <div class="form-text text-muted">Your API key is securely saved and used to generate real-time trading signals.</div>
                             </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>Save AI Settings
+                            
+                            <!-- ChatGPT Key -->
+                            <div class="mb-3 api-key-group d-none" id="group-chatgpt">
+                                <label for="chatgptApiKey" class="form-label">OpenAI API Key</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary"><i class="fas fa-key text-success"></i></span>
+                                    <input type="password" class="form-control bg-dark text-light border-secondary" id="chatgptApiKey" placeholder="sk-proj-...">
+                                </div>
+                            </div>
+                            
+                            <!-- Ollama URL -->
+                            <div class="mb-3 api-key-group d-none" id="group-ollama">
+                                <label for="ollamaUrl" class="form-label">Ollama Host URL</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary"><i class="fas fa-network-wired text-info"></i></span>
+                                    <input type="text" class="form-control bg-dark text-light border-secondary" id="ollamaUrl" placeholder="http://localhost:11434" value="http://localhost:11434">
+                                </div>
+                                <div class="form-text text-muted">Make sure Ollama is running locally. E.g., model 'llama3'</div>
+                            </div>
+
+                            <div class="form-text text-muted mb-3">The selected AI will automatically analyze the market and execute Buy/Sell deals.</div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save me-1"></i>Save & Activate AI
                             </button>
                         </form>
                     </div>
@@ -656,8 +687,14 @@ function populateConfigurationForms(config) {
     const notifications = config.notification_settings || {};
     const ai = config.ai_settings || {};
     
-    if(document.getElementById('deepseekApiKey')) {
+    if(document.getElementById('aiProvider')) {
+        document.getElementById('aiProvider').value = ai.provider || 'deepseek';
         document.getElementById('deepseekApiKey').value = ai.deepseek_api_key || '';
+        document.getElementById('chatgptApiKey').value = ai.chatgpt_api_key || '';
+        document.getElementById('ollamaUrl').value = ai.ollama_url || 'http://localhost:11434';
+        
+        // Trigger change event to show correct input
+        document.getElementById('aiProvider').dispatchEvent(new Event('change'));
     }
     
     // Global settings
@@ -789,6 +826,12 @@ function setupFormHandlers() {
     // AI settings form
     const aiForm = document.getElementById('aiSettingsForm');
     if(aiForm) {
+        // Handle dropdown changes
+        document.getElementById('aiProvider').addEventListener('change', function(e) {
+            document.querySelectorAll('.api-key-group').forEach(el => el.classList.add('d-none'));
+            document.getElementById('group-' + e.target.value).classList.remove('d-none');
+        });
+        
         aiForm.addEventListener('submit', function(e) {
             e.preventDefault();
             saveAiSettings();
@@ -855,9 +898,13 @@ function saveEmailSettings() {
 
 function saveAiSettings() {
     const aiSettings = {
-        deepseek_api_key: document.getElementById('deepseekApiKey').value
+        provider: document.getElementById('aiProvider').value,
+        deepseek_api_key: document.getElementById('deepseekApiKey').value,
+        chatgpt_api_key: document.getElementById('chatgptApiKey').value,
+        ollama_url: document.getElementById('ollamaUrl').value
     };
     updateConfiguration({ ai_settings: aiSettings });
+    showAlert('AI Engine (' + aiSettings.provider + ') activated successfully. It will now auto-trade.', 'success');
 }
 
 function saveSmsSettings() {

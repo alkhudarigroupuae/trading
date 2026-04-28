@@ -8,38 +8,57 @@ import json
 import requests
 import os
 
-class DeepSeekAnalyzer:
+class AITradingEngine:
     def _get_api_key(self):
         # 1. Try to read from user settings (config.json)
+    def _get_ai_config(self):
+        # 1. Try to read from user settings (config.json)
+        ai_config = {
+            'provider': 'deepseek',
+            'api_key': os.environ.get("DEEPSEEK_API_KEY", ""),
+            'base_url': "https://api.deepseek.com/v1/chat/completions"
+        }
+        
         try:
-            # Handle PyInstaller .exe execution path vs normal python path
             import sys
             if getattr(sys, 'frozen', False):
-                base_path = sys._MEIPASS # This is where the .exe extracts files
-                config_path = os.path.join(os.path.dirname(sys.executable), 'config.json') # Try to read from same folder as .exe
+                base_path = sys._MEIPASS
+                config_path = os.path.join(os.path.dirname(sys.executable), 'config.json')
                 if not os.path.exists(config_path):
-                    config_path = os.path.join(base_path, 'config.json') # Fallback to bundled config
+                    config_path = os.path.join(base_path, 'config.json')
             else:
                 config_path = 'config.json'
                 
             with open(config_path, 'r') as f:
                 config = json.load(f)
-                key = config.get('ai_settings', {}).get('deepseek_api_key')
-                if key and key.strip() != '':
-                    return key.strip()
+                settings = config.get('ai_settings', {})
+                
+                provider = settings.get('provider', 'deepseek')
+                ai_config['provider'] = provider
+                
+                if provider == 'deepseek':
+                    key = settings.get('deepseek_api_key')
+                    if key and key.strip() != '':
+                        ai_config['api_key'] = key.strip()
+                elif provider == 'chatgpt':
+                    key = settings.get('chatgpt_api_key')
+                    if key and key.strip() != '':
+                        ai_config['api_key'] = key.strip()
+                        ai_config['base_url'] = "https://api.openai.com/v1/chat/completions"
+                elif provider == 'ollama':
+                    ai_config['base_url'] = settings.get('ollama_url', 'http://localhost:11434') + "/api/generate"
+                    
         except Exception as e:
-            logging.debug(f"Could not read API key from config: {e}")
+            import logging
+            logging.debug(f"Could not read AI config: {e}")
             
-        # 2. Fallback to Environment Variable (for Vercel Production)
-        return os.environ.get("DEEPSEEK_API_KEY", "")
+        return ai_config
 
-    def __init__(self, api_key=None):
+    def __init__(self):
         """
-        Initialize the AI Analyzer.
-        In production, the API key comes from config.json (User Settings) or Vercel Environment Variables.
+        Initialize the Multi-Model AI Analyzer.
         """
-        self.api_key = api_key or self._get_api_key()
-        self.base_url = "https://api.deepseek.com/v1/chat/completions" # Replace with actual DeepSeek endpoint
+        self.ai_config = self._get_ai_config()
         
     def analyze_market(self, symbol, current_price, technical_data=None):
         """
@@ -53,9 +72,10 @@ class DeepSeekAnalyzer:
         Returns:
             dict: The AI's decision (BUY/SELL/HOLD, Confidence, Stop Loss, Take Profit)
         """
-        # Refresh API key on every analysis to catch UI updates immediately
-        self.api_key = self._get_api_key()
-        logging.info(f"AI Engine analyzing {symbol} at price {current_price} with key configured: {bool(self.api_key)}")
+        # Refresh AI config on every analysis to catch UI updates immediately
+        self.ai_config = self._get_ai_config()
+        provider = self.ai_config['provider']
+        logging.info(f"[{provider.upper()}] AI Engine evaluating {symbol} at price {current_price} for Auto-Trading.")
         
         # Build the prompt for the AI
         prompt = f"""
@@ -133,7 +153,7 @@ class DeepSeekAnalyzer:
 
 if __name__ == "__main__":
     # Test the AI module standalone
-    ai = DeepSeekAnalyzer()
+    ai = AITradingEngine()
     print("Testing AI Module Architecture...")
     decision = ai.analyze_market("XAUUSD", 2350.50, {"RSI": 45, "Trend": "Bullish"})
     print(f"AI Decision Format: {json.dumps(decision, indent=2)}")

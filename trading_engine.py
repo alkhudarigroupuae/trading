@@ -13,7 +13,7 @@ except ImportError:
     import sys
     import os
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from ai_engine.deepseek_analyzer import DeepSeekAnalyzer
+    from ai_engine.multi_model_ai import AITradingEngine
 
     # Real-Market Data proxy class for development (CEO Rule: No Fake Data)
     class Trader:
@@ -28,7 +28,7 @@ except ImportError:
             self.positions = []
             
             # Init AI Module as the Default Decision Engine
-            self.ai_engine = DeepSeekAnalyzer()
+            self.ai_engine = AITradingEngine()
             
             # Initialize open positions with real symbols
             self._init_live_market_data()
