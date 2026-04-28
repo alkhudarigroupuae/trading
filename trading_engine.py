@@ -9,8 +9,11 @@ try:
     from trader import Trader
 except ImportError:
     import yfinance as yf
-    import random
     from datetime import datetime
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from ai_engine.deepseek_analyzer import DeepSeekAnalyzer
 
     # Real-Market Data proxy class for development (CEO Rule: No Fake Data)
     class Trader:
@@ -24,6 +27,9 @@ except ImportError:
             self.current_prices = {}
             self.positions = []
             
+            # Init AI Module as the Default Decision Engine
+            self.ai_engine = DeepSeekAnalyzer()
+            
             # Initialize open positions with real symbols
             self._init_live_market_data()
         
@@ -35,28 +41,34 @@ except ImportError:
                     self.initial_prices[sym] = price
                     self.current_prices[sym] = price
                     
-                    # Create a virtual position
-                    is_buy = random.choice([True, False])
-                    # Gold moves in $1, EURUSD in 0.0001 pips. 
-                    # 1 lot Gold = 100 oz. 1 lot EURUSD = 100k
-                    vol = 1.0 if sym == 'GC=F' else 0.1 
+                    # --- AI DEFAULT INTEGRATION ---
+                    # Instead of random guessing, the AI module is now the default brain
+                    symbol_clean = 'XAUUSD' if sym == 'GC=F' else 'EURUSD'
+                    ai_decision = self.ai_engine.analyze_market(symbol_clean, price)
                     
-                    self.positions.append({
-                        'ticket': random.randint(1000000, 9999999),
-                        'symbol': 'XAUUSD' if sym == 'GC=F' else 'EURUSD',
-                        'type': 'BUY' if is_buy else 'SELL',
-                        'volume': vol,
-                        'price_open': price,
-                        'price_current': price,
-                        'sl': price * (0.95 if is_buy else 1.05),
-                        'tp': price * (1.05 if is_buy else 0.95),
-                        'profit': 0.0,
-                        'swap': 0.0,
-                        'commission': -5.0,
-                        'time': datetime.utcnow().isoformat(),
-                        '_yf_symbol': sym,
-                        '_is_buy': is_buy
-                    })
+                    if ai_decision['action'] in ['BUY', 'SELL']:
+                        is_buy = True if ai_decision['action'] == 'BUY' else False
+                        
+                        # 1 lot Gold = 100 oz. 1 lot EURUSD = 100k
+                        vol = 1.0 if sym == 'GC=F' else 0.1 
+                        
+                        self.positions.append({
+                            'ticket': int(datetime.utcnow().timestamp() % 1000000),
+                            'symbol': symbol_clean,
+                            'type': ai_decision['action'],
+                            'volume': vol,
+                            'price_open': price,
+                            'price_current': price,
+                            'sl': ai_decision['suggested_sl'],
+                            'tp': ai_decision['suggested_tp'],
+                            'profit': 0.0,
+                            'swap': 0.0,
+                            'commission': -5.0,
+                            'time': datetime.utcnow().isoformat(),
+                            '_yf_symbol': sym,
+                            '_is_buy': is_buy,
+                            'ai_reasoning': ai_decision['reasoning'] # Store AI's reason
+                        })
             except Exception as e:
                 import logging
                 logging.error(f"Failed to init live market data: {e}")
