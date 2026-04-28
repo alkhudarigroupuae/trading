@@ -365,3 +365,34 @@ def api_today_stats():
     except Exception as e:
         logging.error(f"Error getting today's stats: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/accounts/<int:account_id>', methods=['DELETE'])
+def api_account_delete(account_id):
+    """Delete an account from config.json and database"""
+    try:
+        # Delete from config.json
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+            
+        accounts = config.get('accounts', [])
+        # In the DB, ID is auto-incremented, but in config it's a list.
+        # We need to find the matching account by checking the DB first to get its login.
+        account = Account.query.get(account_id)
+        if not account:
+            return jsonify({'error': 'Account not found'}), 404
+            
+        login_to_delete = account.login
+        
+        # Remove from config
+        config['accounts'] = [acc for acc in accounts if acc.get('login') != login_to_delete]
+        
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+            
+        # Delete from database
+        db.session.delete(account)
+        db.session.commit()
+        
+        return jsonify({'message': 'Account deleted successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
