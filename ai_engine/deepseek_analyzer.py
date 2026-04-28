@@ -12,7 +12,17 @@ class DeepSeekAnalyzer:
     def _get_api_key(self):
         # 1. Try to read from user settings (config.json)
         try:
-            with open('config.json', 'r') as f:
+            # Handle PyInstaller .exe execution path vs normal python path
+            import sys
+            if getattr(sys, 'frozen', False):
+                base_path = sys._MEIPASS # This is where the .exe extracts files
+                config_path = os.path.join(os.path.dirname(sys.executable), 'config.json') # Try to read from same folder as .exe
+                if not os.path.exists(config_path):
+                    config_path = os.path.join(base_path, 'config.json') # Fallback to bundled config
+            else:
+                config_path = 'config.json'
+                
+            with open(config_path, 'r') as f:
                 config = json.load(f)
                 key = config.get('ai_settings', {}).get('deepseek_api_key')
                 if key and key.strip() != '':
