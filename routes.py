@@ -301,28 +301,14 @@ def api_dashboard_summary():
         # Use database data if available, otherwise return demo data
         accounts = Account.query.filter_by(enabled=True).all()
         if not accounts:
-            # Demo data for initial display
-            mock_accounts = [
-                {
-                    'id': 1,
-                    'name': 'Demo Account 1',
-                    'login': 123456,
-                    'server': 'Exness-Demo',
-                    'balance': 10000.0,
-                    'equity': 10050.0,
-                    'margin': 200.0,
-                    'margin_free': 9850.0,
-                    'currency': 'USD',
-                    'enabled': True
-                }
-            ]
+            # Real Data Rule: Return 0.00 instead of fake data
             return jsonify({
-                'accounts': mock_accounts,
+                'accounts': [],
                 'summary': {
-                    'total_balance': 10000.0,
-                    'total_equity': 10050.0,
-                    'open_positions': 2,
-                    'today_trades': 5
+                    'total_balance': 0.00,
+                    'total_equity': 0.00,
+                    'open_positions': 0,
+                    'today_trades': 0
                 }
             })
         
@@ -358,12 +344,12 @@ def api_today_stats():
         today_trades = Trade.query.filter(Trade.open_time >= today_start).all()
         
         if not today_trades:
-            # Demo data if no trades
+            # Real Data Rule: Return 0 instead of fake data
             return jsonify({
-                'total_trades': 5,
-                'total_profit': 125.50,
-                'winning_trades': 4,
-                'win_rate': 80.0
+                'total_trades': 0,
+                'total_profit': 0.00,
+                'winning_trades': 0,
+                'win_rate': 0.0
             })
         
         total_profit = sum(trade.profit for trade in today_trades if trade.profit)

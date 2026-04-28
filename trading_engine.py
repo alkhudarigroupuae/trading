@@ -17,7 +17,7 @@ except ImportError:
         def __init__(self, account_config, global_settings=None):
             self.config = account_config
             self.global_settings = global_settings or {}
-            self.balance = 10000.0
+            self.balance = 0.00
             
             # Start with a baseline price to track profit/loss realistically
             self.initial_prices = {}
